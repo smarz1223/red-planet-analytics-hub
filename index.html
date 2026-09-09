@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red Planet Analytics</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23C9432A'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05070C;
+    --panel: #10141C;
+    --panel-hover: #161C27;
+    --line: #232B38;
+    --text: #E7E5DF;
+    --text-muted: #838C9C;
+    --planet-core: #FF6A45;
+    --planet-line: #D6432B;
+    --teal: #4FAFA8;
+    --display: 'Orbitron', sans-serif;
+    --body: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; }
+
+  button { font-family: inherit; color: inherit; background: none; border: none; }
+
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+
+  .starfield { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .star { position: absolute; background: #fff; border-radius: 50%; }
+  .star--twinkle { animation: twinkle 4s ease-in-out infinite; }
+  @keyframes twinkle { 0%, 100% { opacity: .15; } 50% { opacity: .9; } }
+
+  .page { position: relative; z-index: 1; }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  .topbar { padding: 28px 0 0; }
+
+  .wordmark {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+  }
+
+  .wordmark strong { color: var(--text); font-weight: 700; }
+
+  /* Breadcrumb */
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 22px 0 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    min-height: 18px;
+  }
+
+  .crumb-link { cursor: pointer; color: var(--text-muted); }
+  .crumb-link:hover { color: var(--teal); }
+  .crumb-current { color: var(--text); }
+  .crumb-sep { color: var(--line); }
+
+  /* Hero / orbit stage */
+  .hero { display: flex; justify-content: center; padding: 20px 0 20px; }
+
+  .orbit-wrap { width: 100%; max-width: 500px; min-width: 300px; margin: 0 auto; }
+
+  #orbitStage { transform: scale(1); }
+  .zoom-pulse { animation: zoomPulse .45s ease; }
+  @keyframes zoomPulse { 0% { transform: scale(1); } 45% { transform: scale(1.045); } 100% { transform: scale(1); } }
+
+  .orbit-svg { width: 100%; height: auto; display: block; }
+
+  .orbit-ring { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 6; }
+
+  .planet-glow { animation: pulse 6s ease-in-out infinite; }
+  .planet-glint { animation: pulse 6s ease-in-out infinite; pointer-events: none; }
+  @keyframes pulse { 0%, 100% { opacity: .8; } 50% { opacity: 1; } }
+
+  .sphere-edge { stroke: var(--planet-line); stroke-width: 1; fill: none; }
+  .sphere-point { fill: var(--planet-core); }
+  .planet-hit { fill: transparent; cursor: pointer; }
+
+  .satellite { cursor: pointer; }
+  .satellite-line { stroke: var(--line); stroke-width: 1; }
+  .satellite-line.is-dim { stroke-dasharray: 2 4; opacity: 0.6; }
+
+  .satellite-visual-inner {
+    transition: transform 0.15s ease;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .satellite:hover .satellite-visual-inner,
+  .satellite:focus-visible .satellite-visual-inner { transform: scale(1.14); }
+
+  .satellite-halo { opacity: 0.24; }
+  .satellite-halo.is-dim { opacity: 0.12; }
+  .satellite-core { }
+  .satellite-core.is-dim { opacity: 0.5; }
+  .satellite-tap { fill: transparent; pointer-events: all; }
+  .satellite-shine { fill: rgba(255,255,255,0.35); pointer-events: none; }
+  .satellite-ring-dim { fill: none; stroke-width: 1.4; stroke-dasharray: 3 4; opacity: 0.75; }
+
+  .pill-bg { fill: rgba(16,20,28,0.88); stroke: var(--line); stroke-width: 1; }
+  .pill-text {
+    font-family: var(--display);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    fill: var(--text);
+  }
+  .satellite-pill.is-dim .pill-text { fill: var(--text-muted); }
+  .satellite-pill.is-dim .pill-bg { opacity: 0.7; }
+
+  /* Manifest */
+  .manifest { padding: 10px 0 60px; border-top: 1px solid var(--line); }
+
+  .manifest h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: 0.03em;
+    margin: 34px 0 18px;
+  }
+
+  .manifest-list { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+
+  .manifest-row {
+    display: grid;
+    grid-template-columns: 36px 1fr auto auto;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+    text-align: left;
+    padding: 18px 14px;
+    border-bottom: 1px solid var(--line);
+    transition: background 0.15s ease;
+    cursor: pointer;
+  }
+
+  .manifest-row:hover, .manifest-row:focus-visible { background: var(--panel-hover); }
+  .manifest-row.is-pending { opacity: 0.75; }
+
+  .row-code { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+
+  .row-main .row-name { font-family: var(--display); font-weight: 600; font-size: 15px; margin: 0 0 4px; }
+
+  .row-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--text-muted); }
+  .row-meta .stat { font-family: var(--mono); color: var(--text); }
+
+  .row-status { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 12px; color: var(--teal); white-space: nowrap; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); }
+  .row-status.is-pending { color: var(--text-muted); }
+  .row-status.is-pending .status-dot { background: var(--text-muted); }
+
+  .row-domain { font-family: var(--mono); font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+  /* Coming soon */
+  .comingsoon { padding: 30px 0 60px; }
+
+  .cs-card {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 36px;
+    text-align: center;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--panel);
+  }
+
+  .cs-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 12px;
+    margin-bottom: 18px;
+  }
+
+  .cs-card h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0 0 12px; }
+
+  .cs-meta { display: flex; justify-content: center; gap: 14px; margin: 0 0 18px; font-size: 13px; color: var(--text-muted); }
+  .cs-meta-item { padding-left: 14px; border-left: 1px solid var(--line); }
+  .cs-meta-item:first-child { padding-left: 0; border-left: none; }
+
+  .cs-domain { font-size: 13px; color: var(--text-muted); margin: 0 0 20px; }
+  .cs-domain .mono { font-family: var(--mono); color: var(--text); }
+
+  .cs-note { font-size: 14px; color: var(--text-muted); margin: 0 0 26px; line-height: 1.6; }
+
+  .cs-back {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--teal);
+    border: 1px solid var(--teal);
+    border-radius: 4px;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .cs-back:hover { background: rgba(79, 175, 168, 0.1); }
+
+  /* Footer */
+  footer { padding: 26px 0 48px; border-top: 1px solid var(--line); }
+  footer p { font-size: 13px; color: var(--text-muted); margin: 0 0 4px; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .wrap { padding: 0 14px; }
+    .hero { flex-direction: column; padding-top: 10px; }
+    .manifest-row {
+      grid-template-columns: 24px 1fr;
+      grid-template-areas: "code name" ". meta" ". status";
+      row-gap: 8px;
+    }
+    .row-code { grid-area: code; }
+    .row-main { grid-area: name; }
+    .row-meta { grid-area: meta; }
+    .row-status { grid-area: status; }
+    .row-domain { display: none; }
+    .cs-card { padding: 26px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="starfield" id="starfield"></div>
+
+<div class="page">
+  <header class="topbar">
+    <div class="wrap">
+      <div class="wordmark"><strong>RED PLANET</strong> ANALYTICS</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <nav class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb"></nav>
+
+    <section class="hero">
+      <div class="orbit-wrap">
+        <div id="orbitStage">
+          <svg class="orbit-svg" viewBox="0 0 600 600" role="img" aria-label="Red Planet Analytics hub diagram: a central planet connected to orbiting leagues">
+            <defs>
+              <radialGradient id="glow" cx="42%" cy="40%" r="55%">
+                <stop offset="0%" stop-color="#FFE3D6" stop-opacity="0.95" />
+                <stop offset="22%" stop-color="#FF6A45" stop-opacity="0.85" />
+                <stop offset="58%" stop-color="#D6432B" stop-opacity="0.32" />
+                <stop offset="100%" stop-color="#D6432B" stop-opacity="0" />
+              </radialGradient>
+            </defs>
+            <circle class="orbit-ring" cx="300" cy="300" r="215" />
+            <circle class="planet-glow" cx="300" cy="300" r="105" fill="url(#glow)" />
+            <g class="planet-glint" transform="translate(287,285)">
+              <path d="M 0,-13 L 1.6,-1.6 L 13,0 L 1.6,1.6 L 0,13 L -1.6,1.6 L -13,0 L -1.6,-1.6 Z" fill="#FFF3EC" opacity="0.55" />
+            </g>
+            <g id="sphereGroup"></g>
+            <circle id="planetHit" cx="300" cy="300" r="108" class="planet-hit" tabindex="0" role="button" aria-label="Back to hub">
+              <title>Back to hub</title>
+            </circle>
+            <g id="satellites"></g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="manifest" id="manifestSection">
+      <h2 id="manifestTitle">Sports</h2>
+      <div class="manifest-list" id="manifestList"></div>
+    </section>
+
+    <section class="comingsoon" id="comingSoon" hidden>
+      <div class="cs-card">
+        <span class="cs-tag">In development</span>
+        <h2 id="csName">League name</h2>
+        <p class="cs-meta">
+          <span class="cs-meta-item" id="csSport"></span>
+          <span class="cs-meta-item" id="csCategory"></span>
+        </p>
+        <p class="cs-domain">Future home: <span class="mono" id="csDomain"></span></p>
+        <p class="cs-note">This league hasn't been built yet. Check back once its dashboard and data pipeline are live.</p>
+        <button type="button" class="cs-back" id="csBack">Back to <span id="csBackLabel"></span></button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p>Built and maintained by Marz.</p>
+  </footer>
+</div>
+
+<script>
+const svgNS = 'http://www.w3.org/2000/svg';
+
+const SPORTS = [
+  { key: 'football', label: 'Football', color: '#C9432A' },
+  { key: 'basketball', label: 'Basketball', color: '#D68A34' },
+  { key: 'baseball', label: 'Baseball', color: '#4FAFA8' },
+  { key: 'hockey', label: 'Hockey', color: '#4A7FB5' },
+];
+
+const LEAGUES = {
+  football: [
+    { name: 'NFL Wins', category: 'Wins League', sub: 'NFLWins', built: false },
+    { name: 'NR Crew', category: 'Fantasy Football', sub: 'NRCrew', built: false },
+    { name: "That's The Truth Ruth", category: 'Fantasy Football', sub: 'TTTR', built: false },
+    { name: 'Pop Never Played Fantasy Football', category: 'Fantasy Football', sub: 'Pop', built: false },
+  ],
+  basketball: [
+    { name: "Marz's March Madness", category: 'March Madness', sub: 'MMM', built: false },
+    { name: 'Games...Blouses', category: 'Fantasy Basketball', sub: 'GameBlouses', built: false },
+  ],
+  baseball: [
+    { name: 'MLB Wins', category: 'Wins League', sub: 'MLBWins', built: true },
+    { name: "Barry Ballstein's Boys", category: 'Fantasy Baseball', sub: 'Barry', built: true },
+  ],
+  hockey: [
+    { name: 'Type Disgusting', category: 'Fantasy Hockey', sub: 'TypeDisgusting', built: false },
+  ],
+};
+
+let STATE = { view: 'home', sport: null, leagueIndex: null };
+
+/* ---------- starfield ---------- */
+function buildStarfield(container, count) {
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('span');
+    const twinkle = Math.random() < 0.12;
+    el.className = 'star' + (twinkle ? ' star--twinkle' : '');
+    el.style.left = (Math.random() * 100).toFixed(2) + '%';
+    el.style.top = (Math.random() * 100).toFixed(2) + '%';
+    const size = (Math.random() * 1.6 + 0.6).toFixed(2);
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.opacity = (Math.random() * 0.55 + 0.15).toFixed(2);
+    if (twinkle) el.style.animationDelay = (Math.random() * 6).toFixed(2) + 's';
+    container.appendChild(el);
+  }
+}
+
+/* ---------- wireframe planet ---------- */
+function fibonacciSphere(samples) {
+  const points = [];
+  const phi = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < samples; i++) {
+    const y = 1 - (i / (samples - 1)) * 2;
+    const radius = Math.sqrt(1 - y * y);
+    const theta = phi * i;
+    points.push({ x: Math.cos(theta) * radius, y, z: Math.sin(theta) * radius });
+  }
+  return points;
+}
+
+function dist3(a, b) {
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
+}
+
+function computeEdges(points, k) {
+  const edges = [];
+  const seen = new Set();
+  points.forEach((p, i) => {
+    const dists = points.map((q, j) => ({ j, d: j === i ? Infinity : dist3(p, q) }));
+    dists.sort((a, b) => a.d - b.d);
+    for (let t = 0; t < k; t++) {
+      const j = dists[t].j;
+      const key = i < j ? i + '-' + j : j + '-' + i;
+      if (!seen.has(key)) {
+        seen.add(key);
+        edges.push([i, j]);
+      }
+    }
+  });
+  return edges;
+}
+
+function rotateX(p, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  return { x: p.x, y: p.y * c - p.z * s, z: p.y * s + p.z * c };
+}
+
+function rotateY(p, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  return { x: p.x * c + p.z * s, y: p.y, z: -p.x * s + p.z * c };
+}
+
+function initPlanet() {
+  const rawPoints = fibonacciSphere(42);
+  const basePoints = rawPoints.map((p) => rotateX(p, 0.4));
+  const edges = computeEdges(rawPoints, 4);
+  const S = 128;
+  const cx = 300, cy = 300;
+
+  const sphereGroup = document.getElementById('sphereGroup');
+  const edgeEls = edges.map(() => {
+    const l = document.createElementNS(svgNS, 'line');
+    l.setAttribute('class', 'sphere-edge');
+    sphereGroup.appendChild(l);
+    return l;
+  });
+  const pointEls = basePoints.map(() => {
+    const c = document.createElementNS(svgNS, 'circle');
+    c.setAttribute('class', 'sphere-point');
+    sphereGroup.appendChild(c);
+    return c;
+  });
+
+  function project(p) {
+    return { x: cx + p.x * S, y: cy - p.y * S, depth: (p.z + 1) / 2 };
+  }
+
+  function tick(angle) {
+    const rotated = basePoints.map((p) => rotateY(p, angle));
+    const projected = rotated.map(project);
+    edges.forEach(([i, j], idx) => {
+      const a = projected[i], b = projected[j];
+      const el = edgeEls[idx];
+      el.setAttribute('x1', a.x.toFixed(1));
+      el.setAttribute('y1', a.y.toFixed(1));
+      el.setAttribute('x2', b.x.toFixed(1));
+      el.setAttribute('y2', b.y.toFixed(1));
+      el.setAttribute('stroke-opacity', (0.15 + 0.55 * Math.min(a.depth, b.depth)).toFixed(2));
+    });
+    projected.forEach((p, idx) => {
+      const el = pointEls[idx];
+      el.setAttribute('cx', p.x.toFixed(1));
+      el.setAttribute('cy', p.y.toFixed(1));
+      el.setAttribute('r', (2.2 + 2.6 * p.depth).toFixed(2));
+      el.setAttribute('opacity', (0.4 + 0.6 * p.depth).toFixed(2));
+    });
+  }
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let angle = 0;
+  tick(reduceMotion ? 0.6 : angle);
+
+  if (!reduceMotion) {
+    function loop() {
+      angle += 0.0032;
+      tick(angle);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+}
+
+/* ---------- satellite icons ---------- */
+/* Stroke tone is chosen per sport color's relative luminance: darker sport
+   colors (football rust, hockey blue) get light strokes; brighter colors
+   (basketball amber) get a stronger dark stroke. This keeps every icon
+   above the 3:1 minimum contrast against its own background circle. */
+function addIcon(parent, key) {
+  const light = 'rgba(255,255,255,0.9)';
+  const lightFaint = 'rgba(255,255,255,0.22)';
+  const dark = 'rgba(5,7,12,0.65)';
+
+  if (key === 'football') {
+    const body = document.createElementNS(svgNS, 'path');
+    body.setAttribute('d', 'M -8,0 C -8,-4 -3,-6 0,-6 C 3,-6 8,-4 8,0 C 8,4 3,6 0,6 C -3,6 -8,4 -8,0 Z');
+    body.setAttribute('fill', lightFaint);
+    parent.appendChild(body);
+    const seam = document.createElementNS(svgNS, 'line');
+    seam.setAttribute('x1', '0'); seam.setAttribute('y1', '-4'); seam.setAttribute('x2', '0'); seam.setAttribute('y2', '4');
+    seam.setAttribute('stroke', light); seam.setAttribute('stroke-width', '1.3');
+    parent.appendChild(seam);
+    [-2, 0, 2].forEach((yy) => {
+      const tick = document.createElementNS(svgNS, 'line');
+      tick.setAttribute('x1', '-1.6'); tick.setAttribute('y1', String(yy));
+      tick.setAttribute('x2', '1.6'); tick.setAttribute('y2', String(yy));
+      tick.setAttribute('stroke', light); tick.setAttribute('stroke-width', '1.1');
+      parent.appendChild(tick);
+    });
+  } else if (key === 'basketball') {
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('r', '8'); circle.setAttribute('fill', 'none');
+    circle.setAttribute('stroke', dark); circle.setAttribute('stroke-width', '1.3');
+    parent.appendChild(circle);
+    const vline = document.createElementNS(svgNS, 'line');
+    vline.setAttribute('x1', '0'); vline.setAttribute('y1', '-8'); vline.setAttribute('x2', '0'); vline.setAttribute('y2', '8');
+    vline.setAttribute('stroke', dark); vline.setAttribute('stroke-width', '1.1');
+    parent.appendChild(vline);
+    ['M -8,0 Q 0,-4.5 8,0', 'M -8,0 Q 0,4.5 8,0'].forEach((d) => {
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('d', d); p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', dark); p.setAttribute('stroke-width', '1.1');
+      parent.appendChild(p);
+    });
+  } else if (key === 'baseball') {
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('r', '8'); circle.setAttribute('fill', 'rgba(255,255,255,0.9)');
+    parent.appendChild(circle);
+    ['M -3,-7 Q -8,0 -3,7', 'M 3,-7 Q 8,0 3,7'].forEach((d) => {
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('d', d); p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', 'rgba(201,67,42,0.8)'); p.setAttribute('stroke-width', '1.1');
+      parent.appendChild(p);
+    });
+  } else if (key === 'hockey') {
+    const puck = document.createElementNS(svgNS, 'ellipse');
+    puck.setAttribute('rx', '8'); puck.setAttribute('ry', '4.5'); puck.setAttribute('fill', light);
+    parent.appendChild(puck);
+    const shadow = document.createElementNS(svgNS, 'ellipse');
+    shadow.setAttribute('cx', '1.6'); shadow.setAttribute('cy', '1.2'); shadow.setAttribute('rx', '2.6'); shadow.setAttribute('ry', '1.2');
+    shadow.setAttribute('fill', 'rgba(5,7,12,0.22)');
+    parent.appendChild(shadow);
+  }
+}
+
+/* ---------- satellites ---------- */
+function polar(cx, cy, r, deg) {
+  const rad = ((deg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function addLabelPill(container, x, y, text, isDim) {
+  const approxWidth = Math.max(48, text.length * 7.2 + 20);
+  const above = y <= 300;
+  const pillY = above ? y - 38 : y + 38;
+
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'satellite-pill' + (isDim ? ' is-dim' : ''));
+
+  const rect = document.createElementNS(svgNS, 'rect');
+  rect.setAttribute('x', String(x - approxWidth / 2));
+  rect.setAttribute('y', String(pillY - 11));
+  rect.setAttribute('width', String(approxWidth));
+  rect.setAttribute('height', '22');
+  rect.setAttribute('rx', '11');
+  rect.setAttribute('class', 'pill-bg');
+  g.appendChild(rect);
+
+  const txt = document.createElementNS(svgNS, 'text');
+  txt.setAttribute('x', String(x));
+  txt.setAttribute('y', String(pillY + 4));
+  txt.setAttribute('text-anchor', 'middle');
+  txt.setAttribute('class', 'pill-text');
+  txt.textContent = text;
+  g.appendChild(txt);
+
+  container.appendChild(g);
+}
+
+function renderSatellites(nodes) {
+  const g = document.getElementById('satellites');
+  g.innerHTML = '';
+  const n = nodes.length;
+  nodes.forEach((node, i) => {
+    const angle = i * (360 / n);
+    const { x, y } = polar(300, 300, 215, angle);
+
+    const group = document.createElementNS(svgNS, 'g');
+    group.setAttribute('class', 'satellite');
+    group.setAttribute('tabindex', '0');
+    group.setAttribute('role', 'button');
+    group.setAttribute('aria-label', node.fullLabel || node.label);
+
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', '300'); line.setAttribute('y1', '300');
+    line.setAttribute('x2', String(x)); line.setAttribute('y2', String(y));
+    line.setAttribute('class', 'satellite-line' + (node.built === false ? ' is-dim' : ''));
+    group.appendChild(line);
+
+    const visual = document.createElementNS(svgNS, 'g');
+    visual.setAttribute('class', 'satellite-visual');
+    visual.setAttribute('transform', `translate(${x},${y})`);
+
+    // Larger invisible tap target, sized independently of the visible dot so
+    // touch targets stay usable even after the whole diagram scales down on
+    // small screens.
+    const tap = document.createElementNS(svgNS, 'circle');
+    tap.setAttribute('r', '26');
+    tap.setAttribute('class', 'satellite-tap');
+    visual.appendChild(tap);
+
+    const inner = document.createElementNS(svgNS, 'g');
+    inner.setAttribute('class', 'satellite-visual-inner');
+
+    const halo = document.createElementNS(svgNS, 'circle');
+    halo.setAttribute('r', '20');
+    halo.setAttribute('fill', node.color);
+    halo.setAttribute('class', 'satellite-halo' + (node.built === false ? ' is-dim' : ''));
+    inner.appendChild(halo);
+
+    const main = document.createElementNS(svgNS, 'circle');
+    main.setAttribute('r', '15');
+    main.setAttribute('fill', node.color);
+    main.setAttribute('class', 'satellite-core' + (node.built === false ? ' is-dim' : ''));
+    inner.appendChild(main);
+
+    const shine = document.createElementNS(svgNS, 'ellipse');
+    shine.setAttribute('cx', '-4'); shine.setAttribute('cy', '-5');
+    shine.setAttribute('rx', '5'); shine.setAttribute('ry', '3');
+    shine.setAttribute('class', 'satellite-shine');
+    inner.appendChild(shine);
+
+    addIcon(inner, node.icon);
+
+    if (node.built === false) {
+      const ring = document.createElementNS(svgNS, 'circle');
+      ring.setAttribute('r', '20');
+      ring.setAttribute('class', 'satellite-ring-dim');
+      ring.setAttribute('stroke', node.color);
+      inner.appendChild(ring);
+    }
+
+    visual.appendChild(inner);
+    group.appendChild(visual);
+
+    addLabelPill(group, x, y, node.label, node.built === false);
+
+    group.addEventListener('click', () => node.onClick());
+    group.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        node.onClick();
+      }
+    });
+
+    g.appendChild(group);
+  });
+}
+
+/* ---------- manifest ---------- */
+function makeCode(text) {
+  const s = document.createElement('span');
+  s.className = 'row-code';
+  s.textContent = text;
+  return s;
+}
+
+function makeStatus(isLive, liveText, pendingText) {
+  const status = document.createElement('span');
+  status.className = 'row-status' + (isLive ? '' : ' is-pending');
+  const dot = document.createElement('span');
+  dot.className = 'status-dot';
+  status.appendChild(dot);
+  status.appendChild(document.createTextNode(isLive ? liveText : pendingText));
+  return status;
+}
+
+function renderManifestHome() {
+  const list = document.getElementById('manifestList');
+  list.innerHTML = '';
+  SPORTS.forEach((sport, i) => {
+    const leagues = LEAGUES[sport.key];
+    const liveCount = leagues.filter((l) => l.built).length;
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'manifest-row';
+    row.addEventListener('click', () => goSport(sport.key));
+
+    row.appendChild(makeCode(String(i + 1).padStart(2, '0')));
+
+    const main = document.createElement('span');
+    main.className = 'row-main';
+    const name = document.createElement('p');
+    name.className = 'row-name';
+    name.textContent = sport.label;
+    const meta = document.createElement('span');
+    meta.className = 'row-meta';
+    const stat = document.createElement('span');
+    stat.className = 'stat';
+    stat.textContent = String(leagues.length);
+    meta.appendChild(stat);
+    meta.appendChild(document.createTextNode(leagues.length === 1 ? 'league' : 'leagues'));
+    main.appendChild(name);
+    main.appendChild(meta);
+    row.appendChild(main);
+
+    row.appendChild(makeStatus(liveCount > 0, liveCount + ' live', 'In development'));
+
+    list.appendChild(row);
+  });
+}
+
+function renderManifestSport(sport, leagues) {
+  const list = document.getElementById('manifestList');
+  list.innerHTML = '';
+  leagues.forEach((l, i) => {
+    let row;
+    if (l.built) {
+      row = document.createElement('a');
+      row.href = `https://${l.sub.toLowerCase()}.redplanetanalytics.com`;
+      row.target = '_blank';
+      row.rel = 'noopener';
+      row.className = 'manifest-row';
+    } else {
+      row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'manifest-row is-pending';
+      row.addEventListener('click', () => setComingSoon(sport.key, i));
+    }
+
+    row.appendChild(makeCode(String(i + 1).padStart(2, '0')));
+
+    const main = document.createElement('span');
+    main.className = 'row-main';
+    const name = document.createElement('p');
+    name.className = 'row-name';
+    name.textContent = l.name;
+    const meta = document.createElement('span');
+    meta.className = 'row-meta';
+    meta.appendChild(document.createTextNode(l.category));
+    main.appendChild(name);
+    main.appendChild(meta);
+    row.appendChild(main);
+
+    row.appendChild(makeStatus(l.built, 'Live', 'In development'));
+
+    const domain = document.createElement('span');
+    domain.className = 'row-domain';
+    domain.textContent = `${l.sub.toLowerCase()}.redplanetanalytics.com`;
+    row.appendChild(domain);
+
+    list.appendChild(row);
+  });
+}
+
+/* ---------- coming soon ---------- */
+function fillComingSoon(sport, league) {
+  document.getElementById('csName').textContent = league.name;
+  document.getElementById('csSport').textContent = sport.label;
+  document.getElementById('csCategory').textContent = league.category;
+  document.getElementById('csDomain').textContent = `${league.sub.toLowerCase()}.redplanetanalytics.com`;
+  document.getElementById('csBackLabel').textContent = sport.label;
+  document.getElementById('csBack').onclick = () => goSport(sport.key);
+}
+
+/* ---------- breadcrumb ---------- */
+function updateBreadcrumb() {
+  const bc = document.getElementById('breadcrumb');
+  bc.innerHTML = '';
+
+  const hub = document.createElement('button');
+  hub.type = 'button';
+  hub.className = STATE.view === 'home' ? 'crumb-current' : 'crumb-link';
+  hub.textContent = 'Hub';
+  if (STATE.view !== 'home') hub.addEventListener('click', goHome);
+  bc.appendChild(hub);
+
+  if (STATE.view !== 'home') {
+    const sport = SPORTS.find((s) => s.key === STATE.sport);
+    const sep = document.createElement('span');
+    sep.className = 'crumb-sep';
+    sep.textContent = '/';
+    bc.appendChild(sep);
+
+    const sportCrumb = document.createElement('button');
+    sportCrumb.type = 'button';
+    sportCrumb.className = STATE.view === 'sport' ? 'crumb-current' : 'crumb-link';
+    sportCrumb.textContent = sport.label;
+    if (STATE.view === 'coming') sportCrumb.addEventListener('click', () => goSport(sport.key));
+    bc.appendChild(sportCrumb);
+  }
+
+  if (STATE.view === 'coming') {
+    const sep2 = document.createElement('span');
+    sep2.className = 'crumb-sep';
+    sep2.textContent = '/';
+    bc.appendChild(sep2);
+
+    const league = LEAGUES[STATE.sport][STATE.leagueIndex];
+    const leagueCrumb = document.createElement('span');
+    leagueCrumb.className = 'crumb-current';
+    leagueCrumb.textContent = league.name;
+    bc.appendChild(leagueCrumb);
+  }
+}
+
+/* ---------- navigation ---------- */
+function pulseZoom() {
+  const stage = document.getElementById('orbitStage');
+  stage.classList.remove('zoom-pulse');
+  void stage.offsetWidth;
+  stage.classList.add('zoom-pulse');
+}
+
+function goHome() {
+  STATE = { view: 'home', sport: null, leagueIndex: null };
+  pulseZoom();
+  render();
+}
+
+function goSport(key) {
+  STATE = { view: 'sport', sport: key, leagueIndex: null };
+  pulseZoom();
+  render();
+}
+
+function setComingSoon(key, idx) {
+  STATE = { view: 'coming', sport: key, leagueIndex: idx };
+  render();
+}
+
+function openLeague(l) {
+  window.open(`https://${l.sub.toLowerCase()}.redplanetanalytics.com`, '_blank', 'noopener');
+}
+
+/* ---------- master render ---------- */
+function render() {
+  updateBreadcrumb();
+  const manifestEl = document.getElementById('manifestSection');
+  const comingEl = document.getElementById('comingSoon');
+  const manifestTitle = document.getElementById('manifestTitle');
+
+  if (STATE.view === 'home') {
+    manifestEl.hidden = false;
+    comingEl.hidden = true;
+    renderSatellites(
+      SPORTS.map((s) => ({
+        label: s.label,
+        fullLabel: s.label,
+        color: s.color,
+        icon: s.key,
+        built: true,
+        onClick: () => goSport(s.key),
+      }))
+    );
+    manifestTitle.textContent = 'Sports';
+    renderManifestHome();
+  } else if (STATE.view === 'sport') {
+    manifestEl.hidden = false;
+    comingEl.hidden = true;
+    const sport = SPORTS.find((s) => s.key === STATE.sport);
+    const leagues = LEAGUES[sport.key];
+    renderSatellites(
+      leagues.map((l, i) => ({
+        label: l.sub,
+        fullLabel: l.name,
+        color: sport.color,
+        icon: sport.key,
+        built: l.built,
+        onClick: () => (l.built ? openLeague(l) : setComingSoon(sport.key, i)),
+      }))
+    );
+    manifestTitle.textContent = sport.label + ' leagues';
+    renderManifestSport(sport, leagues);
+  } else if (STATE.view === 'coming') {
+    manifestEl.hidden = true;
+    comingEl.hidden = false;
+    const sport = SPORTS.find((s) => s.key === STATE.sport);
+    const leagues = LEAGUES[sport.key];
+    const league = leagues[STATE.leagueIndex];
+    renderSatellites(
+      leagues.map((l, i) => ({
+        label: l.sub,
+        fullLabel: l.name,
+        color: sport.color,
+        icon: sport.key,
+        built: l.built,
+        onClick: () => (l.built ? openLeague(l) : setComingSoon(sport.key, i)),
+      }))
+    );
+    fillComingSoon(sport, league);
+  }
+}
+
+/* ---------- init ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  buildStarfield(document.getElementById('starfield'), 140);
+  initPlanet();
+
+  const planetHit = document.getElementById('planetHit');
+  planetHit.addEventListener('click', goHome);
+  planetHit.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      goHome();
+    }
+  });
+
+  render();
+});
+</script>
+
+</body>
+</html>
