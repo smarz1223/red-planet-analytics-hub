@@ -241,6 +241,9 @@
     .cs-card { padding: 26px 20px; }
   }
 </style>
+<!-- Cloudflare Web Analytics -->
+<script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "d47efd36f89144e9ad8fa03631da83de"}'></script>
+<!-- End Cloudflare Web Analytics -->
 </head>
 <body>
 
@@ -320,22 +323,22 @@ const SPORTS = [
 
 const LEAGUES = {
   football: [
-    { name: 'NFL Wins', category: 'Wins League', sub: 'NFLWins', built: true },
-    { name: 'NR Crew', category: 'Fantasy Football', sub: 'NRCrew', built: false },
-    { name: "That's The Truth Ruth", category: 'Fantasy Football', sub: 'TTTR', built: false },
-    { name: 'Pop Never Played Fantasy Football', category: 'Fantasy Football', sub: 'Pop', built: false },
-    { name: 'Barbershop Boxes', category: 'Squares Pool', sub: 'Boxes', built: false },
+    { name: 'NFL Wins', category: 'Wins League', sub: 'NFLWins', label: 'NFL Wins', built: false },
+    { name: 'NR Crew', category: 'Fantasy Football', sub: 'NRCrew', label: 'NR Crew', built: false },
+    { name: "That's The Truth Ruth", category: 'Fantasy Football', sub: 'TTTR', label: 'TTTR', built: false },
+    { name: 'Pop Never Played Fantasy Football', category: 'Fantasy Football', sub: 'Pop', label: 'Pop Never Played FF', built: false },
+    { name: 'Barbershop Boxes', category: 'Squares Pool', sub: 'Boxes', label: 'Boxes', built: false },
   ],
   basketball: [
-    { name: "Marz's March Madness", category: 'March Madness', sub: 'MMM', built: false },
-    { name: 'Games...Blouses', category: 'Fantasy Basketball', sub: 'GameBlouses', built: false },
+    { name: "Marz's March Madness", category: 'March Madness', sub: 'MMM', label: 'MMM', built: false },
+    { name: 'Games...Blouses', category: 'Fantasy Basketball', sub: 'GameBlouses', label: 'Game Blouses', built: false },
   ],
   baseball: [
-    { name: 'MLB Wins', category: 'Wins League', sub: 'MLBWins', built: true },
-    { name: "Barry Ballstein's Boys", category: 'Fantasy Baseball', sub: 'Barry', built: true },
+    { name: 'MLB Wins', category: 'Wins League', sub: 'MLBWins', label: 'MLB Wins', built: true },
+    { name: "Barry Ballstein's Boys", category: 'Fantasy Baseball', sub: 'Barry', label: 'Barry', built: true },
   ],
   hockey: [
-    { name: 'Type Disgusting', category: 'Fantasy Hockey', sub: 'TypeDisgusting', built: false },
+    { name: 'Type Disgusting', category: 'Fantasy Hockey', sub: 'TypeDisgusting', label: 'Type Disgusting', built: false },
   ],
 };
 
@@ -786,7 +789,7 @@ function render() {
     const leagues = LEAGUES[sport.key];
     renderSatellites(
       leagues.map((l, i) => ({
-        label: l.sub,
+        label: l.label,
         fullLabel: l.name,
         color: sport.color,
         icon: sport.key,
@@ -804,7 +807,7 @@ function render() {
     const league = leagues[STATE.leagueIndex];
     renderSatellites(
       leagues.map((l, i) => ({
-        label: l.sub,
+        label: l.label,
         fullLabel: l.name,
         color: sport.color,
         icon: sport.key,
